@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"go_final_project/pkg/api"
 	"go_final_project/pkg/db"
 	"log"
 	"net/http"
@@ -16,6 +17,8 @@ func main() {
 	if err != nil {
 		log.Fatal("ошибка инициализации БД:", err)
 	}
+
+	api.Init()
 
 	fs := http.FileServer(http.Dir(webDir))
 
