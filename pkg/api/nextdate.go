@@ -89,8 +89,8 @@ func NextDate(now time.Time, dstart string, repeat string) (string, error) {
 }
 
 func NextDateHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	if r.Method != http.MethodGet {
+		errorResponse(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -99,12 +99,12 @@ func NextDateHandler(w http.ResponseWriter, r *http.Request) {
 	repeatParam := r.FormValue("repeat")
 
 	if dateParam == "" {
-		http.Error(w, "Не указан параметр date", http.StatusBadRequest)
+		errorResponse(w, "Не указан параметр date", http.StatusBadRequest)
 		return
 	}
 
 	if repeatParam == "" {
-		http.Error(w, "Не указан параметр repeat", http.StatusBadRequest)
+		errorResponse(w, "Не указан параметр repeat", http.StatusBadRequest)
 		return
 	}
 
@@ -115,14 +115,14 @@ func NextDateHandler(w http.ResponseWriter, r *http.Request) {
 		var err error
 		now, err = time.Parse(DateFormat, nowParam)
 		if err != nil {
-			http.Error(w, "Неверный формат параметра now: "+nowParam, http.StatusBadRequest)
+			errorResponse(w, "Неверный формат параметра now: "+nowParam, http.StatusBadRequest)
 			return
 		}
 	}
 
 	next, err := NextDate(now, dateParam, repeatParam)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		errorResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
