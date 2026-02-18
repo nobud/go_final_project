@@ -8,8 +8,11 @@ import (
 	"time"
 )
 
+// afterNow возвращает true, если date > now (сравнивает только даты, без времени)
 func afterNow(date, now time.Time) bool {
-	return date.After(now)
+	dateStr := date.Format(DateFormat)
+	nowStr := now.Format(DateFormat)
+	return dateStr > nowStr
 }
 
 func newDay(now time.Time, start time.Time, parts []string) (string, error) {
