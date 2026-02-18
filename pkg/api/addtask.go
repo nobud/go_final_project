@@ -54,6 +54,7 @@ func checkDate(task *db.Task) error {
 	if !afterNow(now, t) {
 		return nil // дата корректна, ничего не меняем
 	}
+
 	if task.Repeat == "" {
 		task.Date = now.Format(DateFormat)
 		return nil

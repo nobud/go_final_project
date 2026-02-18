@@ -31,6 +31,42 @@ func AddTask(task *Task) (int64, error) {
 	return id, nil
 }
 
+func GetTask(id string) (*Task, error) {
+	var task Task
+	query := `
+		SELECT id, date, title, comment, repeat
+		FROM scheduler
+		WHERE id = ?`
+
+	err := db.QueryRow(query, id).Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка получения задачи с ID = %s: %w", id, err)
+	}
+	return &task, nil
+}
+
+func UpdateTask(task *Task) error {
+	query := `
+		UPDATE scheduler SET date = ?, title = ?, comment = ?, repeat = ?
+		WHERE id = ?`
+
+	result, err := db.Exec(query, task.Date, task.Title, task.Comment, task.Repeat, task.ID)
+	if err != nil {
+		return fmt.Errorf("ошибка обновления задачи: %w", err)
+	}
+
+	count, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("ошибка получения количества обновленных строк: %w", err)
+	}
+
+	if count == 0 {
+		return fmt.Errorf("задача с ID = %s не найдена", task.ID)
+	}
+
+	return nil
+}
+
 func Tasks(search string, limit int) ([]*Task, error) {
 	var rows *sql.Rows
 	var err error
