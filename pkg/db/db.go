@@ -29,7 +29,7 @@ func Init(dbFile string) error {
 		install = true
 	}
 
-	db, err = sql.Open("sqlite", dbFile)
+	db, err = sql.Open("sqlite", dbFile+"?cache=shared")
 	if err != nil {
 		return fmt.Errorf("ошибка открытия БД %w", err)
 	}
@@ -41,5 +41,7 @@ func Init(dbFile string) error {
 			return fmt.Errorf("ошибка создания схемы БД %w", err)
 		}
 	}
+
+	db.SetMaxOpenConns(1)
 	return nil
 }
