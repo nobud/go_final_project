@@ -15,9 +15,27 @@ func TaskHandler(w http.ResponseWriter, r *http.Request) {
 		UpdateTaskHandler(w, r)
 	case http.MethodGet:
 		GetTaskHandler(w, r)
+	case http.MethodDelete:
+		DeleteTaskHandler(w, r)
 	default:
 		errorResponse(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
+}
+
+func DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get("id")
+	if id == "" {
+		errorResponse(w, "Не указан идентификатор", http.StatusBadRequest)
+		return
+	}
+
+	err := db.DeleteTask(id)
+	if err != nil {
+		errorResponse(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	writeJSON(w, struct{}{})
 }
 
 func GetTaskHandler(w http.ResponseWriter, r *http.Request) {
