@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	_ "modernc.org/sqlite"
 )
@@ -22,6 +23,13 @@ const schema = `
 `
 
 func Init(dbFile string) error {
+	dir := filepath.Dir(dbFile)
+	if dir != "." && dir != "" {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return fmt.Errorf("ошибка создания директории %s: %w", dir, err)
+		}
+	}
+
 	var install bool
 	_, err := os.Stat(dbFile)
 

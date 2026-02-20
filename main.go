@@ -12,7 +12,7 @@ func main() {
 	const port = 7540
 	const webDir = "./web"
 
-	dbFile := "scheduler.db"
+	dbFile := "data/scheduler.db"
 	err := db.Init(dbFile)
 	if err != nil {
 		log.Fatal("ошибка инициализации БД:", err)

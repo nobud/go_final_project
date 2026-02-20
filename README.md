@@ -18,7 +18,7 @@
 `docker run -d \
   --name scheduler \
   -p 7540:7540 \
-  -v $(pwd):/app \
+  -v /$(pwd)/data:/app/data \
   go-scheduler`
 
 # Файлы для итогового задания
