@@ -9,7 +9,10 @@
 
 Приложение доступно по адресу http://localhost:7540
 
+Для корректной работы тестов путь к БД в поле `DBFile` в файле `tests/settings.go` должен быть `"../data/scheduler.db"`
+
 Чтобы протестировать поиск, присвойте переменной Search значение `true` в файле `tests/settings.go`
+
 
 Сборка Docker образа:
 `docker build -t go-scheduler .`
