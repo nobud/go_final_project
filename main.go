@@ -4,17 +4,21 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
 
 	"go_final_project/pkg/api"
 	"go_final_project/pkg/db"
 )
 
-const port = 7540
+const portDefault = 7540
 const webDir = "./web"
 
 func main() {
-
 	dbFile := "data/scheduler.db"
+
+	port := getPort()
+
 	err := db.Init(dbFile)
 	if err != nil {
 		log.Fatal("ошибка инициализации БД:", err)
@@ -34,4 +38,19 @@ func main() {
 	if err != nil {
 		log.Fatal("Ошибка запуска сервера:", err)
 	}
+}
+
+func getPort() int {
+	portStr := os.Getenv("TODO_PORT")
+	if portStr == "" {
+		return portDefault
+	}
+
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		log.Printf("Ошибка преобразования TODO_PORT='%s' в число, используется порт %d", portStr, port)
+		return portDefault
+	}
+
+	return port
 }
