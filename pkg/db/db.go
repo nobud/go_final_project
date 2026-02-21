@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 
 	_ "modernc.org/sqlite"
+
+	_ "go_final_project/pkg/constants"
 )
 
 var db *sql.DB
@@ -45,11 +47,17 @@ func Init(dbFile string) error {
 	if install {
 		_, err := db.Exec(schema)
 		if err != nil {
-			db.Close()
+			_ = db.Close()
 			return fmt.Errorf("ошибка создания схемы БД %w", err)
 		}
 	}
 
-	db.SetMaxOpenConns(1)
+	return nil
+}
+
+func Close() error {
+	if db != nil {
+		return db.Close()
+	}
 	return nil
 }

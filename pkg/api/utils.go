@@ -10,7 +10,9 @@ func errorResponse(w http.ResponseWriter, errMsg string, statusCode int) {
 	w.WriteHeader(statusCode)
 
 	response := map[string]string{"error": errMsg}
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Ошибка сериализации JSON", http.StatusInternalServerError)
+	}
 }
 
 func writeJSON(w http.ResponseWriter, data any) {

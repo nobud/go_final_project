@@ -1,9 +1,12 @@
 package api
 
 import (
-	"go_final_project/pkg/db"
 	"net/http"
+
+	"go_final_project/pkg/db"
 )
+
+const limit = 50
 
 // структура ответа со списком задач
 type TasksResp struct {
@@ -19,7 +22,6 @@ func TasksHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	search := r.URL.Query().Get("search")
-	const limit = 50
 
 	tasks, err := db.Tasks(search, limit)
 	if err != nil {

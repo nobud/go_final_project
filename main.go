@@ -2,21 +2,25 @@ package main
 
 import (
 	"fmt"
-	"go_final_project/pkg/api"
-	"go_final_project/pkg/db"
 	"log"
 	"net/http"
+
+	"go_final_project/pkg/api"
+	"go_final_project/pkg/db"
 )
 
+const port = 7540
+const webDir = "./web"
+
 func main() {
-	const port = 7540
-	const webDir = "./web"
 
 	dbFile := "data/scheduler.db"
 	err := db.Init(dbFile)
 	if err != nil {
 		log.Fatal("ошибка инициализации БД:", err)
 	}
+
+	defer db.Close()
 
 	api.Init()
 

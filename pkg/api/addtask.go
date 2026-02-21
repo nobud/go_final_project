@@ -3,9 +3,11 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"go_final_project/pkg/db"
 	"net/http"
 	"time"
+
+	"go_final_project/pkg/constants"
+	"go_final_project/pkg/db"
 )
 
 func AddTaskHandler(w http.ResponseWriter, r *http.Request) {
@@ -41,11 +43,11 @@ func checkDate(task *db.Task) error {
 	now := time.Now()
 
 	if task.Date == "" {
-		task.Date = now.Format(DateFormat)
+		task.Date = now.Format(constants.DateFormat)
 		return nil
 	}
 
-	t, err := time.Parse(DateFormat, task.Date)
+	t, err := time.Parse(constants.DateFormat, task.Date)
 	if err != nil {
 		return err
 	}
@@ -56,7 +58,7 @@ func checkDate(task *db.Task) error {
 	}
 
 	if task.Repeat == "" {
-		task.Date = now.Format(DateFormat)
+		task.Date = now.Format(constants.DateFormat)
 		return nil
 	}
 

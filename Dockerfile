@@ -10,9 +10,8 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o scheduler .
 
-FROM ubuntu:latest
+FROM alpine:latest
 
-RUN apt-get update && apt-get install -y sqlite3
 
 RUN mkdir -p /app
 

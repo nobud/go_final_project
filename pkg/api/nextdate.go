@@ -2,16 +2,19 @@ package api
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"go_final_project/pkg/constants"
 )
 
 // afterNow возвращает true, если date > now (сравнивает только даты, без времени)
 func afterNow(date, now time.Time) bool {
-	dateStr := date.Format(DateFormat)
-	nowStr := now.Format(DateFormat)
+	dateStr := date.Format(constants.DateFormat)
+	nowStr := now.Format(constants.DateFormat)
 	return dateStr > nowStr
 }
 
@@ -19,7 +22,7 @@ func newDay(now time.Time, start time.Time, parts []string) (string, error) {
 	maxInterval := 400
 	// проверка формата
 	if len(parts) != 2 {
-		return "", fmt.Errorf("Некорректный формат правила повторения: %s", strings.Join(parts, " "))
+		return "", fmt.Errorf("некорректный формат правила повторения: %s", strings.Join(parts, " "))
 	}
 
 	// конвертация интервала
@@ -30,7 +33,7 @@ func newDay(now time.Time, start time.Time, parts []string) (string, error) {
 
 	// проверка максимального интервала
 	if interval > maxInterval {
-		return "", fmt.Errorf("превышен максимально допустимый интервал (%d):", maxInterval, interval)
+		return "", fmt.Errorf("превышен максимально допустимый интервал (%d): (%d)", maxInterval, interval)
 	}
 
 	// поиск следующей даты
@@ -41,13 +44,13 @@ func newDay(now time.Time, start time.Time, parts []string) (string, error) {
 			break
 		}
 	}
-	return date.Format(DateFormat), nil
+	return date.Format(constants.DateFormat), nil
 }
 
 func newYear(now time.Time, start time.Time, parts []string) (string, error) {
 	// проверка формата
 	if len(parts) != 1 {
-		return "", fmt.Errorf("Некорректный формат правила повторения: %s", strings.Join(parts, " "))
+		return "", fmt.Errorf("некорректный формат правила повторения: %s", strings.Join(parts, " "))
 	}
 
 	// поиск следующей даты
@@ -58,7 +61,7 @@ func newYear(now time.Time, start time.Time, parts []string) (string, error) {
 			break
 		}
 	}
-	return date.Format(DateFormat), nil
+	return date.Format(constants.DateFormat), nil
 }
 
 func NextDate(now time.Time, dstart string, repeat string) (string, error) {
@@ -68,7 +71,7 @@ func NextDate(now time.Time, dstart string, repeat string) (string, error) {
 	}
 
 	// проверка на неправильный формат исходной даты
-	start, err := time.Parse("20060102", dstart)
+	start, err := time.Parse(constants.DateFormat, dstart)
 	if err != nil {
 		return "", fmt.Errorf("некорректный формат даты: %s", dstart)
 	}
@@ -85,9 +88,9 @@ func NextDate(now time.Time, dstart string, repeat string) (string, error) {
 	case "y":
 		return newYear(now, start, parts)
 	case "m", "w":
-		return "", fmt.Errorf("Неподдерживаемый формат правила: %s", repeat)
+		return "", fmt.Errorf("неподдерживаемый формат правила: %s", repeat)
 	default:
-		return "", fmt.Errorf("Некорректный формат правила: %s", repeat)
+		return "", fmt.Errorf("некорректный формат правила: %s", repeat)
 	}
 }
 
@@ -116,7 +119,7 @@ func NextDateHandler(w http.ResponseWriter, r *http.Request) {
 		now = time.Now()
 	} else {
 		var err error
-		now, err = time.Parse(DateFormat, nowParam)
+		now, err = time.Parse(constants.DateFormat, nowParam)
 		if err != nil {
 			errorResponse(w, "Неверный формат параметра now: "+nowParam, http.StatusBadRequest)
 			return
@@ -131,5 +134,7 @@ func NextDateHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(next))
+	if _, err := w.Write([]byte(next)); err != nil {
+		log.Printf("Response write error: %v", err)
+	}
 }

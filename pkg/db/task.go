@@ -3,6 +3,13 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"time"
+
+	"go_final_project/pkg/constants"
+)
+
+const (
+	inputDateFormat = `02.01.2006`
 )
 
 type Task struct {
@@ -112,10 +119,9 @@ func Tasks(search string, limit int) ([]*Task, error) {
 	var rows *sql.Rows
 	var err error
 
-	// проверка является ли search датой
-	if isDateQuery(search) {
+	switch {
+	case isDateQuery(search):
 		// поиск по дате
-		// преобразование даты в формат 20060102
 		date := convertDateFormat(search)
 		query := `
 		SELECT id, date, title, comment, repeat
@@ -124,8 +130,9 @@ func Tasks(search string, limit int) ([]*Task, error) {
 		ORDER BY date
 		LIMIT ?`
 		rows, err = db.Query(query, date, limit)
-	} else if search != "" {
-		// поиск по подстроке в title или в comment
+
+	case search != "":
+		// поиск по подстроке в title или comment
 		pattern := "%" + search + "%"
 		query := `
 		SELECT id, date, title, comment, repeat
@@ -134,8 +141,9 @@ func Tasks(search string, limit int) ([]*Task, error) {
 		ORDER BY date
 		LIMIT ?`
 		rows, err = db.Query(query, pattern, pattern, limit)
-	} else {
-		// без поиска - все задачи
+
+	default:
+		// без поиска — все задачи
 		query := `
 		SELECT id, date, title, comment, repeat
 		FROM scheduler
@@ -168,26 +176,11 @@ func Tasks(search string, limit int) ([]*Task, error) {
 }
 
 func isDateQuery(s string) bool {
-	if len(s) != 10 {
-		return false
-	}
-	if s[2] != '.' || s[5] != '.' {
-		return false
-	}
-	for i := 0; i < len(s); i++ {
-		if i == 2 || i == 5 {
-			continue
-		}
-		if s[i] < '0' || s[i] > '9' {
-			return false
-		}
-	}
-	return true
+	_, err := time.Parse(inputDateFormat, s)
+	return err == nil
 }
 
 func convertDateFormat(dateStr string) string {
-	day := dateStr[0:2]
-	month := dateStr[3:5]
-	year := dateStr[6:10]
-	return year + month + day
+	t, _ := time.Parse(inputDateFormat, dateStr)
+	return t.Format(constants.DateFormat)
 }
