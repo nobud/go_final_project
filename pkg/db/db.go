@@ -4,51 +4,74 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-	"path/filepath"
 
-	_ "modernc.org/sqlite"
-
-	_ "go_final_project/pkg/constants"
+	_ "github.com/jackc/pgx/v5/stdlib" // драйвер pgx в режиме совместимости с database/sql
 )
 
 var db *sql.DB
 
-const schema = `
-	CREATE TABLE IF NOT EXISTS scheduler (
-	    id INTEGER PRIMARY KEY AUTOINCREMENT,
-	    date CHAR(8) NOT NULL DEFAULT "",
-	    title VARCHAR(255) NOT NULL DEFAULT "",
-	    comment TEXT,
-	    repeat VARCHAR(128) NOT NULL DEFAULT ""
-	);
-	CREATE INDEX idx_scheduler_date ON scheduler(date);
+const schemaPostgres = `
+    CREATE TABLE IF NOT EXISTS scheduler (
+        id SERIAL PRIMARY KEY,
+        date VARCHAR(8) NOT NULL DEFAULT '',
+        title VARCHAR(255) NOT NULL DEFAULT '',
+        comment TEXT,
+        repeat VARCHAR(128) NOT NULL DEFAULT ''
+    );
+    CREATE INDEX IF NOT EXISTS idx_scheduler_date ON scheduler(date);
 `
 
-func Init(dbFile string) error {
-	dir := filepath.Dir(dbFile)
-	if dir != "." && dir != "" {
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			return fmt.Errorf("ошибка создания директории %s: %w", dir, err)
-		}
-	}
+// Init инициализирует подключение к PostgreSQL
+func Init() error {
+	// DB_HOST можно задать через окружение, по умолчанию localhost
+	host := getEnv("DB_HOST", "localhost")
+	port := "5432"
+	user := getEnv("DB_USER", "postgres")
+	password := getEnv("DB_PASSWORD", "admin")
+	dbname := getEnv("DB_NAME", "scheduler")
 
-	var install bool
-	_, err := os.Stat(dbFile)
+	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		host, port, user, password, dbname)
 
+	var err error
+	db, err = sql.Open("pgx", connStr)
 	if err != nil {
-		install = true
+		return fmt.Errorf("ошибка открытия подключения: %w", err)
 	}
 
-	db, err = sql.Open("sqlite", dbFile+"?cache=shared")
+	// Создаем таблицу если её нет
+	if err = createTableIfNotExists(); err != nil {
+		db.Close()
+		return fmt.Errorf("ошибка создания таблицы: %w", err)
+	}
+
+	return nil
+}
+
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
+func createTableIfNotExists() error {
+	var exists bool
+	queryCheck := `
+        SELECT EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE table_name = 'scheduler'
+        )`
+
+	err := db.QueryRow(queryCheck).Scan(&exists)
 	if err != nil {
-		return fmt.Errorf("ошибка открытия БД %w", err)
+		return fmt.Errorf("ошибка проверки существования таблицы: %w", err)
 	}
 
-	if install {
-		_, err := db.Exec(schema)
+	if !exists {
+		_, err = db.Exec(schemaPostgres)
 		if err != nil {
-			_ = db.Close()
-			return fmt.Errorf("ошибка создания схемы БД %w", err)
+			return fmt.Errorf("ошибка создания таблицы: %w", err)
 		}
 	}
 

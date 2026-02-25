@@ -15,11 +15,10 @@ const portDefault = 7540
 const webDir = "./web"
 
 func main() {
-	dbFile := "data/scheduler.db"
 
 	port := getPort()
 
-	err := db.Init(dbFile)
+	err := db.Init()
 	if err != nil {
 		log.Fatal("ошибка инициализации БД:", err)
 	}

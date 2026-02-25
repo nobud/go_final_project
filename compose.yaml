@@ -1,0 +1,67 @@
+
+services:
+
+  postgres:
+    image: postgres:alpine
+
+    container_name: scheduler-postgres
+
+    # Переменные окружения для настройки PostgreSQL
+    environment:
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: scheduler
+      POSTGRES_USER: postgres
+
+    ports:
+      - "5432:5432"
+
+    # Тома для постоянного хранения данных
+    volumes:
+      # Данные PostgreSQL сохраняются в томе postgres_data
+      - postgres_data:/var/lib/postgresql/data
+
+    # Политика перезапуска:
+    # unless-stopped = перезапускать всегда, кроме случаев, когда остановили вручную
+    restart: unless-stopped
+
+    # --- HEALTHCHECK - проверка готовности PostgreSQL ---
+    healthcheck:
+      # Команда для проверки: pg_isready проверяет, готов ли PostgreSQL принимать подключения
+      # -U postgres: пользователь postgres
+      # -d scheduler: база данных scheduler
+      test: ["CMD-SHELL", "pg_isready -U postgres -d scheduler"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      # Время на запуск контейнера (первые 10 секунд не проверяем)
+      start_period: 30s
+
+  app:
+    # Сборка образа из Dockerfile в текущей директории
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: scheduler-app
+
+    ports:
+      - "7540:7540"
+
+    environment:
+      TODO_PORT: 7540
+
+      # Настройки подключения к PostgreSQL
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASSWORD: admin
+      DB_NAME: scheduler
+
+    depends_on:
+      postgres:
+        condition: service_healthy  # ЖДЕМ, ПОКА POSTGRES БУДЕТ ГОТОВ!
+
+    # Политика перезапуска
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
