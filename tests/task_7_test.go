@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	_ "github.com/jackc/pgx/v5/stdlib" // Убедитесь, что драйвер импортирован
 	"github.com/stretchr/testify/assert"
 )
 
@@ -45,7 +46,8 @@ func TestDone(t *testing.T) {
 		assert.Empty(t, ret)
 
 		var task Task
-		err = db.Get(&task, `SELECT * FROM scheduler WHERE id=?`, id)
+		// ИСПРАВЛЕНО: $1 вместо ? для PostgreSQL
+		err = db.Get(&task, `SELECT * FROM scheduler WHERE id = $1`, id)
 		assert.NoError(t, err)
 		now = now.AddDate(0, 0, 3)
 		assert.Equal(t, now.Format(`20060102`), task.Date)
