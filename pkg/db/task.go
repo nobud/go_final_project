@@ -21,7 +21,7 @@ type Task struct {
 }
 
 func UpdateDate(id string, newDate string) error {
-	query := `UPDATE scheduler SET date = ? WHERE id = ?`
+	query := `UPDATE scheduler SET date = $1 WHERE id = $2`
 
 	result, err := db.Exec(query, newDate, id)
 	if err != nil {
@@ -41,7 +41,7 @@ func UpdateDate(id string, newDate string) error {
 }
 
 func DeleteTask(id string) error {
-	query := `DELETE FROM scheduler WHERE id = ?`
+	query := `DELETE FROM scheduler WHERE id = $1`
 
 	result, err := db.Exec(query, id)
 	if err != nil {
@@ -63,17 +63,13 @@ func DeleteTask(id string) error {
 
 func AddTask(task *Task) (int64, error) {
 	query := `
-		INSERT INTO scheduler (date, title, comment, repeat)
-		VALUES (?, ?, ?, ?)`
+        INSERT INTO scheduler (date, title, comment, repeat)
+        VALUES ($1, $2, $3, $4) RETURNING id`
 
-	result, err := db.Exec(query, task.Date, task.Title, task.Comment, task.Repeat)
+	var id int64
+	err := db.QueryRow(query, task.Date, task.Title, task.Comment, task.Repeat).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("ошибка добавления задачи: %w", err)
-	}
-
-	id, err := result.LastInsertId()
-	if err != nil {
-		return 0, fmt.Errorf("ошибка получения ID: %w", err)
 	}
 
 	return id, nil
@@ -84,7 +80,7 @@ func GetTask(id string) (*Task, error) {
 	query := `
 		SELECT id, date, title, comment, repeat
 		FROM scheduler
-		WHERE id = ?`
+		WHERE id = $1`
 
 	err := db.QueryRow(query, id).Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat)
 	if err != nil {
@@ -95,8 +91,8 @@ func GetTask(id string) (*Task, error) {
 
 func UpdateTask(task *Task) error {
 	query := `
-		UPDATE scheduler SET date = ?, title = ?, comment = ?, repeat = ?
-		WHERE id = ?`
+        UPDATE scheduler SET date = $1, title = $2, comment = $3, repeat = $4
+        WHERE id = $5`
 
 	result, err := db.Exec(query, task.Date, task.Title, task.Comment, task.Repeat, task.ID)
 	if err != nil {
@@ -121,34 +117,31 @@ func Tasks(search string, limit int) ([]*Task, error) {
 
 	switch {
 	case isDateQuery(search):
-		// поиск по дате
 		date := convertDateFormat(search)
 		query := `
-		SELECT id, date, title, comment, repeat
-		FROM scheduler
-		WHERE date = ?
-		ORDER BY date
-		LIMIT ?`
+        SELECT id, date, title, comment, repeat
+        FROM scheduler
+        WHERE date = $1
+        ORDER BY date
+        LIMIT $2`
 		rows, err = db.Query(query, date, limit)
 
 	case search != "":
-		// поиск по подстроке в title или comment
 		pattern := "%" + search + "%"
 		query := `
-		SELECT id, date, title, comment, repeat
-		FROM scheduler
-		WHERE title LIKE ? OR comment LIKE ?
-		ORDER BY date
-		LIMIT ?`
+        SELECT id, date, title, comment, repeat
+        FROM scheduler
+        WHERE title LIKE $1 OR comment LIKE $2
+        ORDER BY date
+        LIMIT $3`
 		rows, err = db.Query(query, pattern, pattern, limit)
 
 	default:
-		// без поиска — все задачи
 		query := `
-		SELECT id, date, title, comment, repeat
-		FROM scheduler
-		ORDER BY date
-		LIMIT ?`
+        SELECT id, date, title, comment, repeat
+        FROM scheduler
+        ORDER BY date
+        LIMIT $1`
 		rows, err = db.Query(query, limit)
 	}
 

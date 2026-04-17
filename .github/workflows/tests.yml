@@ -9,25 +9,44 @@ jobs:
       fail-fast: false
       matrix:
         go-version: [1.24.x]
-  
+
+    services:
+      postgres:
+        image: postgres:alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: admin
+          POSTGRES_DB: scheduler_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: '1.24.x'
-        
-    - name: Display Go version
-      run: go version
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
 
-    - name: Install dependencies
-      run: go mod tidy
+      - name: Display Go version
+        run: go version
 
-    - name: Run local server
-      run: |
-        CGO_ENABLED=0 GOOS=linux go run main.go &
-        sleep 100
-        go test -run ^TestApp$ ./tests
-        
-        
+      - name: Install dependencies
+        run: go mod tidy
+
+      - name: Run local server and tests
+        env:
+          DB_HOST: localhost
+          DB_USER: postgres
+          DB_PASSWORD: admin
+          DB_NAME: scheduler_test
+          TODO_PORT: 7540
+        run: |
+          CGO_ENABLED=0 GOOS=linux go run main.go &
+          sleep 5
+          go test -run ^TestApp$ ./tests

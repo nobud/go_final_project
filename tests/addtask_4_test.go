@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	_ "github.com/jackc/pgx/v5/stdlib" // Добавить импорт драйвера
 	"github.com/stretchr/testify/assert"
 )
 
@@ -85,6 +86,10 @@ func TestAddTask(t *testing.T) {
 	db := openDB(t)
 	defer db.Close()
 
+	// Очищаем таблицу перед тестом
+	_, err := db.Exec(`TRUNCATE TABLE scheduler RESTART IDENTITY CASCADE`)
+	assert.NoError(t, err)
+
 	tbl := []task{
 		{"20240129", "", "", ""},
 		{"20240192", "Qwerty", "", ""},
@@ -136,7 +141,8 @@ func TestAddTask(t *testing.T) {
 			}
 			id := fmt.Sprint(mid)
 
-			err = db.Get(&task, `SELECT * FROM scheduler WHERE id=?`, id)
+			// ИСПРАВЛЕНО: $1 вместо ? для PostgreSQL
+			err = db.Get(&task, `SELECT * FROM scheduler WHERE id = $1`, id)
 			assert.NoError(t, err)
 			assert.Equal(t, id, strconv.FormatInt(task.ID, 10))
 
