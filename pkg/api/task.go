@@ -3,8 +3,9 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
-	"go_final_project/pkg/db"
+	"task_manager_project/pkg/db"
 )
 
 // обрабатывает все запросы к /api/task
@@ -72,7 +73,7 @@ func UpdateTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := checkDate(&task); err != nil {
+	if err := checkDate(&task, time.Now()); err != nil {
 		errorResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}

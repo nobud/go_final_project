@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"go_final_project/pkg/constants"
+	"task_manager_project/pkg/constants"
 )
 
 // afterNow возвращает true, если date > now (сравнивает только даты, без времени)
@@ -18,80 +18,58 @@ func afterNow(date, now time.Time) bool {
 	return dateStr > nowStr
 }
 
-func newDay(now time.Time, start time.Time, parts []string) (string, error) {
-	maxInterval := 400
-	// проверка формата
-	if len(parts) != 2 {
-		return "", fmt.Errorf("некорректный формат правила повторения: %s", strings.Join(parts, " "))
-	}
-
-	// конвертация интервала
-	interval, err := strconv.Atoi(parts[1])
-	if err != nil {
-		return "", fmt.Errorf("некорректный интервал: %s", parts[1])
-	}
-
-	// проверка максимального интервала
-	if interval > maxInterval {
-		return "", fmt.Errorf("превышен максимально допустимый интервал (%d): (%d)", maxInterval, interval)
-	}
-
-	// поиск следующей даты
-	date := start
-	for {
-		date = date.AddDate(0, 0, interval)
-		if afterNow(date, now) {
-			break
-		}
-	}
-	return date.Format(constants.DateFormat), nil
+type repeatRule struct {
+	years int
+	days  int
 }
 
-func newYear(now time.Time, start time.Time, parts []string) (string, error) {
-	// проверка формата
-	if len(parts) != 1 {
-		return "", fmt.Errorf("некорректный формат правила повторения: %s", strings.Join(parts, " "))
+func parseRepeat(repeat string) (repeatRule, error) {
+	const maxInterval = 400
+	if repeat == "" {
+		return repeatRule{}, fmt.Errorf("пустое правило повторения")
 	}
-
-	// поиск следующей даты
-	date := start
-	for {
-		date = date.AddDate(1, 0, 0)
-		if afterNow(date, now) {
+	parts := strings.Split(repeat, " ")
+	switch parts[0] {
+	case "d":
+		if len(parts) != 2 {
 			break
 		}
+		days, err := strconv.Atoi(parts[1])
+		if err != nil || days < 1 || days > maxInterval {
+			return repeatRule{}, fmt.Errorf("интервал повторения должен быть целым числом от 1 до %d: %s", maxInterval, parts[1])
+		}
+		return repeatRule{days: days}, nil
+	case "y":
+		if len(parts) == 1 {
+			return repeatRule{years: 1}, nil
+		}
 	}
-	return date.Format(constants.DateFormat), nil
+	return repeatRule{}, fmt.Errorf("некорректный формат правила повторения: %s", repeat)
+}
+
+func (rule repeatRule) nextDate(now, date time.Time) (string, error) {
+	for {
+		date = date.AddDate(rule.years, 0, rule.days)
+		if date.Year() > 9999 {
+			return "", fmt.Errorf("следующая дата выходит за пределы поддерживаемого формата")
+		}
+		if afterNow(date, now) {
+			return date.Format(constants.DateFormat), nil
+		}
+	}
 }
 
 func NextDate(now time.Time, dstart string, repeat string) (string, error) {
-	//проверка на пустое правило повторения
-	if repeat == "" {
-		return "", fmt.Errorf("пустое правило повторения")
+	rule, err := parseRepeat(repeat)
+	if err != nil {
+		return "", err
 	}
 
-	// проверка на неправильный формат исходной даты
 	start, err := time.Parse(constants.DateFormat, dstart)
 	if err != nil {
 		return "", fmt.Errorf("некорректный формат даты: %s", dstart)
 	}
-
-	// парсинг правила повторения
-	parts := strings.Split(repeat, " ")
-	if len(parts) == 0 {
-		return "", fmt.Errorf("пустое правило: %s", repeat)
-	}
-
-	switch parts[0] {
-	case "d":
-		return newDay(now, start, parts)
-	case "y":
-		return newYear(now, start, parts)
-	case "m", "w":
-		return "", fmt.Errorf("неподдерживаемый формат правила: %s", repeat)
-	default:
-		return "", fmt.Errorf("некорректный формат правила: %s", repeat)
-	}
+	return rule.nextDate(now, start)
 }
 
 func NextDateHandler(w http.ResponseWriter, r *http.Request) {

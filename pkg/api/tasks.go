@@ -3,7 +3,7 @@ package api
 import (
 	"net/http"
 
-	"go_final_project/pkg/db"
+	"task_manager_project/pkg/db"
 )
 
 const limit = 50

@@ -7,8 +7,8 @@ import (
 	"os"
 	"strconv"
 
-	"go_final_project/pkg/api"
-	"go_final_project/pkg/db"
+	"task_manager_project/pkg/api"
+	"task_manager_project/pkg/db"
 )
 
 const portDefault = 7540

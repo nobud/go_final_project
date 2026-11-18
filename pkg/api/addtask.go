@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"go_final_project/pkg/constants"
-	"go_final_project/pkg/db"
+	"task_manager_project/pkg/constants"
+	"task_manager_project/pkg/db"
 )
 
 func AddTaskHandler(w http.ResponseWriter, r *http.Request) {
@@ -22,7 +22,7 @@ func AddTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := checkDate(&task); err != nil {
+	if err := checkDate(&task, time.Now()); err != nil {
 		errorResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -39,8 +39,15 @@ func AddTaskHandler(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, response)
 }
 
-func checkDate(task *db.Task) error {
-	now := time.Now()
+func checkDate(task *db.Task, now time.Time) error {
+	var rule repeatRule
+	if task.Repeat != "" {
+		var err error
+		rule, err = parseRepeat(task.Repeat)
+		if err != nil {
+			return err
+		}
+	}
 
 	if task.Date == "" {
 		task.Date = now.Format(constants.DateFormat)
@@ -62,7 +69,7 @@ func checkDate(task *db.Task) error {
 		return nil
 	}
 
-	next, err := NextDate(now, task.Date, task.Repeat)
+	next, err := rule.nextDate(now, t)
 	if err != nil {
 		return err
 	}

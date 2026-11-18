@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"go_final_project/pkg/constants"
+	"task_manager_project/pkg/constants"
 )
 
 const (

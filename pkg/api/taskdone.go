@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"go_final_project/pkg/db"
+	"task_manager_project/pkg/db"
 )
 
 func TaskDoneHandler(w http.ResponseWriter, r *http.Request) {
