@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // драйвер pgx в режиме совместимости с database/sql
 )
@@ -49,6 +50,10 @@ func Init() error {
 	if err != nil {
 		return fmt.Errorf("ошибка открытия подключения: %w", err)
 	}
+
+	db.SetMaxOpenConns(5)
+	db.SetMaxIdleConns(2)
+	db.SetConnMaxIdleTime(5 * time.Minute)
 
 	if _, err = db.Exec(schemaPostgres); err != nil {
 		db.Close()
