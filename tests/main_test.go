@@ -61,7 +61,7 @@ func runTests(m *testing.M) (int, error) {
 	if err := waitForPostgres(); err != nil {
 		return 1, err
 	}
-	if err := db.Init(); err != nil {
+	if err := db.Init(context.Background()); err != nil {
 		return 1, err
 	}
 	defer db.Close()

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -27,9 +28,11 @@ func AddTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := db.AddTask(&task)
+	ctx, cancel := context.WithTimeout(r.Context(), databaseTimeout)
+	defer cancel()
+	id, err := db.AddTask(ctx, &task)
 	if err != nil {
-		errorResponse(w, "ошибка добавления задачи в БД: "+err.Error(), http.StatusInternalServerError)
+		databaseErrorResponse(w, ctx, err)
 		return
 	}
 

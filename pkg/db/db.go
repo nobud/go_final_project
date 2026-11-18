@@ -1,9 +1,11 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/url"
 	"os"
@@ -13,6 +15,8 @@ import (
 )
 
 var db *sql.DB
+
+const initTimeout = 10 * time.Second
 
 const schemaPostgres = `
     CREATE TABLE IF NOT EXISTS scheduler (
@@ -26,7 +30,10 @@ const schemaPostgres = `
 `
 
 // Init инициализирует подключение к PostgreSQL
-func Init() error {
+func Init(parent context.Context) error {
+	ctx, cancel := context.WithTimeout(parent, initTimeout)
+	defer cancel()
+
 	// DB_HOST можно задать через окружение, по умолчанию localhost
 	host := getEnv("DB_HOST", "localhost")
 	port := getEnv("DB_PORT", "5432")
@@ -51,11 +58,19 @@ func Init() error {
 		return fmt.Errorf("ошибка открытия подключения: %w", err)
 	}
 
-	db.SetMaxOpenConns(5)
-	db.SetMaxIdleConns(2)
-	db.SetConnMaxIdleTime(5 * time.Minute)
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxIdleTime(1 * time.Minute)
+	db.SetConnMaxLifetime(5 * time.Minute)
 
-	if _, err = db.Exec(schemaPostgres); err != nil {
+	if err = db.PingContext(ctx); err != nil {
+		db.Close()
+		slog.Error("db.PingContext", slog.Any("error", err))
+		return fmt.Errorf("ошибка подключения к БД: %w", err)
+	}
+	slog.Info("Соединение установлено")
+
+	if _, err = db.ExecContext(ctx, schemaPostgres); err != nil {
 		db.Close()
 		return fmt.Errorf("ошибка инициализации схемы: %w", err)
 	}

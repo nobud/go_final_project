@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"net/http"
 
 	"task_manager_project/pkg/db"
@@ -23,9 +24,11 @@ func TasksHandler(w http.ResponseWriter, r *http.Request) {
 
 	search := r.URL.Query().Get("search")
 
-	tasks, err := db.Tasks(search, limit)
+	ctx, cancel := context.WithTimeout(r.Context(), databaseTimeout)
+	defer cancel()
+	tasks, err := db.Tasks(ctx, search, limit)
 	if err != nil {
-		errorResponse(w, "ошибка получения задач "+err.Error(), http.StatusInternalServerError)
+		databaseErrorResponse(w, ctx, err)
 		return
 	}
 
