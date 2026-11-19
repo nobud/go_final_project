@@ -5,20 +5,15 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        go-version: [1.24.x]
-
     services:
       postgres:
-        image: postgres:alpine
+        image: postgres:18-alpine
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: admin
+          POSTGRES_PASSWORD: todo-test-password
           POSTGRES_DB: scheduler_test
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -h 127.0.0.1 -U postgres -d scheduler_test"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -31,22 +26,21 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24.x'
+          go-version-file: go.mod
 
       - name: Display Go version
         run: go version
 
-      - name: Install dependencies
-        run: go mod tidy
+      - name: Check dependencies
+        run: go mod tidy -diff
 
-      - name: Run local server and tests
+      - name: Run unit tests
+        run: go test ./...
+
+      - name: Run integration test
         env:
           DB_HOST: localhost
           DB_USER: postgres
-          DB_PASSWORD: admin
+          DB_PASSWORD: todo-test-password
           DB_NAME: scheduler_test
-          TODO_PORT: 7540
-        run: |
-          CGO_ENABLED=0 GOOS=linux go run main.go &
-          sleep 5
-          go test -run ^TestApp$ ./tests
+        run: go test -tags=integration ./tests -count=1

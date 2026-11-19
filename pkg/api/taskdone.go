@@ -1,10 +1,11 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"time"
 
-	"go_final_project/pkg/db"
+	"task_manager_project/pkg/db"
 )
 
 func TaskDoneHandler(w http.ResponseWriter, r *http.Request) {
@@ -14,21 +15,23 @@ func TaskDoneHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := r.URL.Query().Get("id")
-	if id == "" {
-		errorResponse(w, "Не указан идентификатор", http.StatusBadRequest)
+	if !validTaskID(id) {
+		errorResponse(w, "Некорректный идентификатор задачи", http.StatusBadRequest)
 		return
 	}
 
-	task, err := db.GetTask(id)
+	ctx, cancel := context.WithTimeout(r.Context(), databaseTimeout)
+	defer cancel()
+	task, err := db.GetTask(ctx, id)
 	if err != nil {
-		errorResponse(w, err.Error(), http.StatusBadRequest)
+		databaseErrorResponse(w, ctx, err)
 		return
 	}
 
 	if task.Repeat == "" { //одноразовая задача
-		err = db.DeleteTask(id)
+		err = db.DeleteTask(ctx, id)
 		if err != nil {
-			errorResponse(w, err.Error(), http.StatusInternalServerError)
+			databaseErrorResponse(w, ctx, err)
 			return
 		}
 	} else { //периодическая задача
@@ -40,9 +43,9 @@ func TaskDoneHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		//обновление даты задачи
-		err = db.UpdateDate(id, next)
+		err = db.UpdateDate(ctx, id, next)
 		if err != nil {
-			errorResponse(w, err.Error(), http.StatusInternalServerError)
+			databaseErrorResponse(w, ctx, err)
 			return
 		}
 	}

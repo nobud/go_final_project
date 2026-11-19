@@ -1,10 +1,12 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
+	"time"
 
-	"go_final_project/pkg/db"
+	"task_manager_project/pkg/db"
 )
 
 // обрабатывает все запросы к /api/task
@@ -25,14 +27,16 @@ func TaskHandler(w http.ResponseWriter, r *http.Request) {
 
 func DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
-	if id == "" {
-		errorResponse(w, "Не указан идентификатор", http.StatusBadRequest)
+	if !validTaskID(id) {
+		errorResponse(w, "Некорректный идентификатор задачи", http.StatusBadRequest)
 		return
 	}
 
-	err := db.DeleteTask(id)
+	ctx, cancel := context.WithTimeout(r.Context(), databaseTimeout)
+	defer cancel()
+	err := db.DeleteTask(ctx, id)
 	if err != nil {
-		errorResponse(w, err.Error(), http.StatusBadRequest)
+		databaseErrorResponse(w, ctx, err)
 		return
 	}
 
@@ -41,14 +45,16 @@ func DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 func GetTaskHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
-	if id == "" {
-		errorResponse(w, "Не указан идентификатор", http.StatusBadRequest)
+	if !validTaskID(id) {
+		errorResponse(w, "Некорректный идентификатор задачи", http.StatusBadRequest)
 		return
 	}
 
-	task, err := db.GetTask(id)
+	ctx, cancel := context.WithTimeout(r.Context(), databaseTimeout)
+	defer cancel()
+	task, err := db.GetTask(ctx, id)
 	if err != nil {
-		errorResponse(w, err.Error(), http.StatusBadRequest)
+		databaseErrorResponse(w, ctx, err)
 		return
 	}
 
@@ -62,8 +68,8 @@ func UpdateTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if task.ID == "" {
-		errorResponse(w, "не указан идентификатор задачи", http.StatusBadRequest)
+	if !validTaskID(task.ID) {
+		errorResponse(w, "некорректный идентификатор задачи", http.StatusBadRequest)
 		return
 	}
 
@@ -72,14 +78,16 @@ func UpdateTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := checkDate(&task); err != nil {
+	if err := checkDate(&task, time.Now()); err != nil {
 		errorResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	err := db.UpdateTask(&task)
+	ctx, cancel := context.WithTimeout(r.Context(), databaseTimeout)
+	defer cancel()
+	err := db.UpdateTask(ctx, &task)
 	if err != nil {
-		errorResponse(w, "ошибка обновления задачи в БД: "+err.Error(), http.StatusInternalServerError)
+		databaseErrorResponse(w, ctx, err)
 		return
 	}
 
