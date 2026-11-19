@@ -76,6 +76,31 @@ func TestNextDateHandler(t *testing.T) {
 	require.Equal(t, "20240127", response.Body.String())
 }
 
+func TestTaskHandlerUnsupportedRepeat(t *testing.T) {
+	tests := []struct {
+		method  string
+		repeat  string
+		message string
+	}{
+		{http.MethodPost, "w 1", "еженедельное повторение пока не поддерживается"},
+		{http.MethodPut, "w 1", "еженедельное повторение пока не поддерживается"},
+		{http.MethodPost, "m 1", "ежемесячное повторение пока не поддерживается"},
+		{http.MethodPut, "m 1", "ежемесячное повторение пока не поддерживается"},
+	}
+	for _, test := range tests {
+		t.Run(test.method+"/"+test.repeat, func(t *testing.T) {
+			body := fmt.Sprintf(`{"id":"1","title":"Тест","date":"20990126","repeat":%q}`, test.repeat)
+			request := httptest.NewRequest(test.method, "/api/task", strings.NewReader(body))
+			response := httptest.NewRecorder()
+			TaskHandler(response, request)
+			require.Equal(t, http.StatusBadRequest, response.Code)
+			var result map[string]string
+			require.NoError(t, json.Unmarshal(response.Body.Bytes(), &result))
+			require.Equal(t, test.message, result["error"])
+		})
+	}
+}
+
 func TestDatabaseErrorResponse(t *testing.T) {
 	t.Run("deadline exceeded", func(t *testing.T) {
 		ctx, cancel := context.WithDeadline(context.Background(), time.Unix(0, 0))

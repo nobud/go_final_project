@@ -43,6 +43,10 @@ func parseRepeat(repeat string) (repeatRule, error) {
 		if len(parts) == 1 {
 			return repeatRule{years: 1}, nil
 		}
+	case "w":
+		return repeatRule{}, fmt.Errorf("еженедельное повторение пока не поддерживается")
+	case "m":
+		return repeatRule{}, fmt.Errorf("ежемесячное повторение пока не поддерживается")
 	}
 	return repeatRule{}, fmt.Errorf("некорректный формат правила повторения: %s", repeat)
 }
