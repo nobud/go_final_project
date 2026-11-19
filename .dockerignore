@@ -4,3 +4,6 @@
 *.db-wal
 *.exe
 .idea
+.env
+.env.*
+!.env.example

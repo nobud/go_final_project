@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 
 	_ "modernc.org/sqlite"
-
-	_ "go_final_project/pkg/constants"
 )
 
 var db *sql.DB
@@ -21,7 +19,7 @@ const schema = `
 	    comment TEXT,
 	    repeat VARCHAR(128) NOT NULL DEFAULT ""
 	);
-	CREATE INDEX idx_scheduler_date ON scheduler(date);
+	CREATE INDEX IF NOT EXISTS idx_scheduler_date ON scheduler(date);
 `
 
 func Init(dbFile string) error {
@@ -32,25 +30,16 @@ func Init(dbFile string) error {
 		}
 	}
 
-	var install bool
-	_, err := os.Stat(dbFile)
-
-	if err != nil {
-		install = true
-	}
-
-	db, err = sql.Open("sqlite", dbFile+"?cache=shared")
+	connection, err := sql.Open("sqlite", dbFile+"?cache=shared")
 	if err != nil {
 		return fmt.Errorf("ошибка открытия БД %w", err)
 	}
 
-	if install {
-		_, err := db.Exec(schema)
-		if err != nil {
-			_ = db.Close()
-			return fmt.Errorf("ошибка создания схемы БД %w", err)
-		}
+	if _, err := connection.Exec(schema); err != nil {
+		_ = connection.Close()
+		return fmt.Errorf("ошибка создания схемы БД %w", err)
 	}
+	db = connection
 
 	return nil
 }

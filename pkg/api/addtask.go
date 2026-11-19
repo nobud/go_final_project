@@ -41,6 +41,14 @@ func AddTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 func checkDate(task *db.Task) error {
 	now := time.Now()
+	var rule repeatRule
+	if task.Repeat != "" {
+		var err error
+		rule, err = parseRepeat(task.Repeat)
+		if err != nil {
+			return err
+		}
+	}
 
 	if task.Date == "" {
 		task.Date = now.Format(constants.DateFormat)
@@ -62,7 +70,7 @@ func checkDate(task *db.Task) error {
 		return nil
 	}
 
-	next, err := NextDate(now, task.Date, task.Repeat)
+	next, err := rule.nextDate(now, t)
 	if err != nil {
 		return err
 	}
